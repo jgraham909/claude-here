@@ -1,0 +1,12 @@
+anthropic
+hatch
+inspect-ai
+ipywidgets
+jsonschema
+mypy
+notebook
+openai
+pylint
+pytest
+referencing
+ruff
