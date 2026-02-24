@@ -46,5 +46,21 @@ claude-here: check-network
 		-w /$(CURRENT_DIR_NAME) \
 		$(PROJECT) bash -c '/usr/local/bin/motd.sh && exec claude'
 
+research-here:
+	@echo "running claude (unfiltered — direct internet access)"
+	@docker run -u 1000:1000 --rm -it \
+		--network bridge \
+		-e HTTP_PROXY="" \
+		-e HTTPS_PROXY="" \
+		-e http_proxy="" \
+		-e https_proxy="" \
+		-e NO_PROXY="" \
+		-e no_proxy="" \
+		-e "CLAUDE_CONFIG_DIR=$(CLAUDE_CONFIG_DIR)" \
+		-v $(HOST_CLAUDE_CONFIG_DIR):$(CLAUDE_CONFIG_DIR) \
+		-v $(shell pwd):/$(CURRENT_DIR_NAME) \
+		-w /$(CURRENT_DIR_NAME) \
+		$(PROJECT) bash -c '/usr/local/bin/motd.sh && exec claude'
+
 update-requirements:
 	pip-compile --generate-hashes --output-file requirements.txt requirements.in
