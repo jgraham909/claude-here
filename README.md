@@ -108,11 +108,42 @@ To add, remove, or upgrade a Python package:
 > ```
 > If it no longer reports `3.11.x`, regenerate the lock file as described above.
 
+## Standalone `claude-here` command
+
+The `claude-here` script in the repo root is a self-contained equivalent of `make claude-here` that works from any directory without needing `make` or the repo on your `PATH`.
+
+To install it as a user command:
+
+```bash
+mkdir -p ~/.local/bin
+ln -s /path/to/repo/claude-here ~/.local/bin/claude-here
+```
+
+Ensure `~/.local/bin` is on your `PATH` (add to `~/.bashrc` / `~/.zshrc` if not already):
+
+```bash
+export PATH="$HOME/.local/bin:$PATH"
+```
+
+Then from any directory:
+
+```bash
+cd ~/some-project
+claude-here
+```
+
+The same environment variable overrides apply as with the Makefile target:
+
+```bash
+AI_PROXY_NETWORK=my_network PROXY_URL=http://myproxy:8080 claude-here
+```
+
 ## Architecture
 
 | File | Purpose |
 |---|---|
 | `Dockerfile` | Image definition — installs tools, pins all versions and checksums |
 | `Makefile` | Convenience wrappers around `docker build` / `docker run` |
+| `claude-here` | Standalone script — run Claude Code from any directory without `make` |
 | `requirements.in` | Human-maintained list of direct Python dependencies |
 | `requirements.txt` | Generated full dependency lock file with SHA-256 hashes — do not edit by hand |

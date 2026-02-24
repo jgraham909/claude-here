@@ -44,7 +44,7 @@ claude-here: check-network
 		-v $(HOST_CLAUDE_CONFIG_DIR):$(CLAUDE_CONFIG_DIR) \
 		-v $(shell pwd):/$(CURRENT_DIR_NAME) \
 		-w /$(CURRENT_DIR_NAME) \
-		$(PROJECT) claude
+		$(PROJECT) bash -c '/usr/local/bin/motd.sh && exec claude'
 
 update-requirements:
 	pip-compile --generate-hashes --output-file requirements.txt requirements.in
