@@ -21,7 +21,7 @@ docker-build:
 
 check-network:
 	@docker network inspect $(AI_PROXY_NETWORK) >/dev/null 2>&1 || \
-		(echo "ERROR: Docker network '$(AI_PROXY_NETWORK)' not found. Is the ai_proxy container running?" && exit 1)
+		(echo "ERROR: Docker network '$(AI_PROXY_NETWORK)' not found. Is the ai_filtering_proxy container running?" && exit 1)
 
 bash: check-network
 	@echo "running bash"

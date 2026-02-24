@@ -18,7 +18,7 @@ AI_PROXY_NETWORK="${AI_PROXY_NETWORK:-ai_proxy_network_internal}"
 PROXY_URL="${PROXY_URL:-http://ai_filtering_proxy:3128}"
 
 if ! docker network inspect "$AI_PROXY_NETWORK" >/dev/null 2>&1; then
-  echo "ERROR: Docker network '$AI_PROXY_NETWORK' not found. Is the ai_proxy container running?" >&2
+  echo "ERROR: Docker network '$AI_PROXY_NETWORK' not found. Is the ai_filtering_proxy container running?" >&2
   exit 1
 fi
 

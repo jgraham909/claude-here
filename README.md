@@ -1,19 +1,19 @@
 # Claude Code — Sandboxed Docker Environment
 
-A Docker-based sandbox for running [Claude Code](https://claude.ai/code) with outbound network access restricted via an external proxy container. The Claude container has no direct internet access — all traffic is routed through a separately managed `ai_proxy` container that enforces a domain allowlist.
+A Docker-based sandbox for running [Claude Code](https://claude.ai/code) with outbound network access restricted via an external proxy container. The Claude container has no direct internet access — all traffic is routed through a separately managed `ai_filtering_proxy` container that enforces a domain allowlist.
 
 ## Prerequisites
 
 - Docker
 - `make`
 - A Claude Code account
-- The `ai_proxy` container running and attached to a Docker network named `ai_proxy_network` (managed separately — see [Network Architecture](#network-architecture))
+- The `ai_filtering_proxy` container running and attached to a Docker network named `ai_proxy_network_internal` (managed separately — see [Network Architecture](#network-architecture))
 - `~/.docker-claude/` directory for persisting Claude config (created automatically on first run if absent)
 
 ## Quick Start
 
 ```bash
-# 1. Ensure the ai_proxy container and ai_proxy_network are running
+# 1. Ensure the ai_filtering_proxy container and ai_proxy_network_internal are running
 
 # 2. Build the image
 make docker-build
@@ -24,7 +24,7 @@ make claude-here
 
 Your current directory is mounted into the container at `/<dirname>` and set as the working directory, so Claude Code operates on your local files directly.
 
-`make claude-here` will fail immediately with a clear error if `ai_proxy_network` is not found, preventing the container from starting without network restrictions in place.
+`make claude-here` will fail immediately with a clear error if `ai_proxy_network_internal` is not found, preventing the container from starting without network restrictions in place.
 
 ## Make Targets
 
@@ -33,7 +33,6 @@ Your current directory is mounted into the container at `/<dirname>` and set as 
 | `make docker-build` | Build the `claude-code:latest` image |
 | `make claude-here` | Run Claude Code in a container against the current directory |
 | `make bash` | Open a bash shell in a fresh container |
-| `make bash-exec` | Attach to an already-running container named `quirky_rhodes` |
 | `make update-requirements` | Regenerate `requirements.txt` from `requirements.in` (requires `pip-tools`) |
 
 ## Network Architecture
@@ -42,18 +41,18 @@ This container enforces network restrictions through topology rather than in-con
 
 ```
 [host]
-  └── ai_proxy_network (Docker network, internal only)
-        ├── ai_proxy container  ← enforces domain allowlist, has external access
+  └── ai_proxy_network_internal (Docker network, internal only)
+        ├── ai_filtering_proxy container  ← enforces domain allowlist, has external access
         └── claude container    ← no direct external access, proxy is only egress
 ```
 
-The Claude container is attached exclusively to `ai_proxy_network` and has no route to the internet other than through the proxy. All outbound HTTP/HTTPS traffic is routed via `HTTP_PROXY`/`HTTPS_PROXY` environment variables pointing to `http://ai_proxy:3128`. Any tool that attempts to open a raw socket to an external address will fail at the network level — there is no route.
+The Claude container is attached exclusively to `ai_proxy_network_internal` and has no route to the internet other than through the proxy. All outbound HTTP/HTTPS traffic is routed via `HTTP_PROXY`/`HTTPS_PROXY` environment variables pointing to `http://ai_filtering_proxy:3128`. Any tool that attempts to open a raw socket to an external address will fail at the network level — there is no route.
 
-The `ai_proxy` container and its allowlist configuration are managed separately and are outside the scope of this repository.
+The `ai_filtering_proxy` container and its allowlist configuration are managed separately and are outside the scope of this repository.
 
 ### Overriding the proxy
 
-The proxy URL defaults to `http://ai_proxy:3128` and the network to `ai_proxy_network`. Both can be overridden at runtime without rebuilding:
+The proxy URL defaults to `http://ai_filtering_proxy:3128` and the network to `ai_proxy_network_internal`. Both can be overridden at runtime without rebuilding:
 
 ```bash
 make claude-here AI_PROXY_NETWORK=my_network PROXY_URL=http://myproxy:8080

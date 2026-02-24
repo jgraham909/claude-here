@@ -3,7 +3,7 @@ FROM node:20
 ARG TZ
 ENV TZ="$TZ"
 
-ARG CLAUDE_CODE_VERSION=2.1.50
+ARG CLAUDE_CODE_VERSION=2.1.52
 ARG DPRINT_VERSION=0.51.1
 ARG DPRINT_SHA256_AMD64="674c1f9fcdf8a564c26cc027e080d0c4758a40a566e04a776fc83c875ad51d45"
 ARG DPRINT_SHA256_ARM64="05a0df273453f099092967641462951fd26dcad282a564f91cc4ad16ea02d526"
@@ -106,12 +106,12 @@ RUN wget "https://github.com/deluan/zsh-in-docker/releases/download/v${ZSH_IN_DO
 # Install Claude
 RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}
 
-# Proxy configuration — defaults route through the ai_proxy container.
+# Proxy configuration — defaults route through the ai_filtering_proxy container.
 # Override at runtime with -e HTTP_PROXY=... if needed.
-ENV HTTP_PROXY=http://ai_proxy:3128
-ENV HTTPS_PROXY=http://ai_proxy:3128
-ENV http_proxy=http://ai_proxy:3128
-ENV https_proxy=http://ai_proxy:3128
+ENV HTTP_PROXY=http://ai_filtering_proxy:3128
+ENV HTTPS_PROXY=http://ai_filtering_proxy:3128
+ENV http_proxy=http://ai_filtering_proxy:3128
+ENV https_proxy=http://ai_filtering_proxy:3128
 ENV NO_PROXY=localhost,127.0.0.1
 ENV no_proxy=localhost,127.0.0.1
 
