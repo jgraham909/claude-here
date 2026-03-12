@@ -5,9 +5,14 @@
 # Install: copy or symlink this script to a directory on your PATH, e.g.:
 #   ln -s /path/to/repo/claude-here /usr/local/bin/claude-here
 #
+# Modes:
+#   claude-here               — filtered mode: traffic routed through ai_filtering_proxy
+#   claude-here --unfiltered  — direct internet access, no proxy or domain restrictions
+#
 # Runtime overrides (set in environment before calling):
 #   AI_PROXY_NETWORK  — Docker network name (default: ai_proxy_network_internal)
 #   PROXY_URL         — HTTP proxy URL     (default: http://ai_filtering_proxy:3128)
+#   OPEN_NETWORK      — Docker network for --unfiltered mode (default: bridge)
 
 set -euo pipefail
 
@@ -16,13 +21,38 @@ CLAUDE_CONFIG_DIR="/home/node/claude-config"
 HOST_CLAUDE_CONFIG_DIR="${HOME}/.docker-claude"
 AI_PROXY_NETWORK="${AI_PROXY_NETWORK:-ai_proxy_network_internal}"
 PROXY_URL="${PROXY_URL:-http://ai_filtering_proxy:3128}"
+OPEN_NETWORK="${OPEN_NETWORK:-bridge}"
+
+UNFILTERED=0
+for arg in "$@"; do
+  if [ "$arg" = "--unfiltered" ]; then
+    UNFILTERED=1
+  fi
+done
+
+CURRENT_DIR_NAME=$(basename "$PWD")
+
+if [ "$UNFILTERED" = "1" ]; then
+  exec docker run -u 1000:1000 --rm -it \
+    --network "$OPEN_NETWORK" \
+    -e HTTP_PROXY="" \
+    -e HTTPS_PROXY="" \
+    -e http_proxy="" \
+    -e https_proxy="" \
+    -e NO_PROXY="" \
+    -e no_proxy="" \
+    -e UNFILTERED=1 \
+    -e "CLAUDE_CONFIG_DIR=$CLAUDE_CONFIG_DIR" \
+    -v "$HOST_CLAUDE_CONFIG_DIR:$CLAUDE_CONFIG_DIR" \
+    -v "$PWD:/$CURRENT_DIR_NAME" \
+    -w "/$CURRENT_DIR_NAME" \
+    "$PROJECT" bash -c '/usr/local/bin/motd.sh && exec claude'
+fi
 
 if ! docker network inspect "$AI_PROXY_NETWORK" >/dev/null 2>&1; then
   echo "ERROR: Docker network '$AI_PROXY_NETWORK' not found. Is the ai_filtering_proxy container running?" >&2
   exit 1
 fi
-
-CURRENT_DIR_NAME=$(basename "$PWD")
 
 exec docker run -u 1000:1000 --rm -it \
   --network "$AI_PROXY_NETWORK" \

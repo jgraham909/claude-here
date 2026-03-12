@@ -91,13 +91,16 @@ ver_row() {
 }
 
 # ── Proxy row ─────────────────────────────────────────────────────────────────
-if [ "$PROXY_STATUS" = "ok" ]; then
+if [ "${UNFILTERED:-}" = "1" ]; then
+  PROXY_ROW=$(printf "${B}network${RST}         ${YLW}⚠  unfiltered — direct internet access${RST}")
+elif [ "$PROXY_STATUS" = "ok" ]; then
   PROXY_ROW=$(printf "${B}proxy${RST}           ${CHK} reachable")
 else
   PROXY_ROW=$(printf "${B}proxy${RST}           ${CRS} $(printf "${RED}UNREACHABLE — network may be broken${RST}")")
 fi
 
 # ── Render ────────────────────────────────────────────────────────────────────
+
 echo
 div "╔" "╗"
 row "$(printf "  ${B}${CYN}Claude Code Sandbox${RST}")"

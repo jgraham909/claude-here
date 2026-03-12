@@ -31,7 +31,7 @@ Your current directory is mounted into the container at `/<dirname>` and set as 
 | Target | Description |
 |---|---|
 | `make docker-build` | Build the `claude-code:latest` image |
-| `make claude-here` | Run Claude Code in a container against the current directory |
+| `make claude-here` | Run Claude Code in a container against the current directory (filtered mode) |
 | `make bash` | Open a bash shell in a fresh container |
 | `make update-requirements` | Regenerate `requirements.txt` from `requirements.in` (requires `pip-tools`) |
 
@@ -137,6 +137,20 @@ The same environment variable overrides apply as with the Makefile target:
 AI_PROXY_NETWORK=my_network PROXY_URL=http://myproxy:8080 claude-here
 ```
 
+### Unfiltered mode — direct internet access
+
+Pass `--unfiltered` to bypass the proxy entirely and give the container direct internet access:
+
+```bash
+claude-here --unfiltered
+```
+
+In this mode the container is attached to the `bridge` network (overridable via `OPEN_NETWORK`) with all proxy environment variables cleared. The startup banner will display a prominent warning indicating the session is unfiltered.
+
+This makes `claude-here --unfiltered` a good research platform — Claude can freely fetch documentation, browse APIs, clone repositories, and reach any external service without the domain allowlist getting in the way.
+
+> **Security note:** The container has no network restrictions in this mode. Avoid using it with sensitive codebases or credentials, and be mindful of what data may leave the container.
+
 ## Architecture
 
 | File | Purpose |
@@ -144,5 +158,6 @@ AI_PROXY_NETWORK=my_network PROXY_URL=http://myproxy:8080 claude-here
 | `Dockerfile` | Image definition — installs tools, pins all versions and checksums |
 | `Makefile` | Convenience wrappers around `docker build` / `docker run` |
 | `claude-here` | Standalone script — run Claude Code from any directory without `make` |
+| `motd.sh` | Startup banner displayed when a container opens |
 | `requirements.in` | Human-maintained list of direct Python dependencies |
 | `requirements.txt` | Generated full dependency lock file with SHA-256 hashes — do not edit by hand |
