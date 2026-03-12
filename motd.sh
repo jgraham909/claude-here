@@ -91,12 +91,15 @@ ver_row() {
 }
 
 # ── Proxy row ─────────────────────────────────────────────────────────────────
+PROXY_ROW2=""
 if [ "${UNFILTERED:-}" = "1" ]; then
   PROXY_ROW=$(printf "${B}network${RST}         ${YLW}⚠  unfiltered — direct internet access${RST}")
 elif [ "$PROXY_STATUS" = "ok" ]; then
-  PROXY_ROW=$(printf "${B}proxy${RST}           ${CHK} reachable")
+  PROXY_ROW=$(printf "${B}filtering proxy${RST} ${CHK} active — domain allowlist enforced")
+  PROXY_ROW2=$(printf "${DIM}via ai_filtering_proxy · %s${RST}" "${HTTP_PROXY:-unknown}")
 else
-  PROXY_ROW=$(printf "${B}proxy${RST}           ${CRS} $(printf "${RED}UNREACHABLE — network may be broken${RST}")")
+  PROXY_ROW=$(printf "${B}filtering proxy${RST} ${CRS} $(printf "${RED}UNREACHABLE — network may be broken${RST}")")
+  PROXY_ROW2=$(printf "${DIM}via ai_filtering_proxy · %s${RST}" "${HTTP_PROXY:-unknown}")
 fi
 
 # ── Render ────────────────────────────────────────────────────────────────────
@@ -113,5 +116,6 @@ row "$(ver_row "claude-code" "$CLAUDE_INST" "$CLAUDE_LATEST")"
 row "$(ver_row "anthropic"   "$ANTHR_INST"  "$ANTHR_LATEST")"
 div
 row "$PROXY_ROW"
+[ -n "$PROXY_ROW2" ] && row "$PROXY_ROW2"
 div "╚" "╝"
 echo
