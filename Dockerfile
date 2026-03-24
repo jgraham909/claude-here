@@ -8,7 +8,10 @@ ARG CLAUDE_CODE_VERSION=2.1.81
 # Install basic development tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
   bat \
+  build-essential \
+  curl \
   dnsutils \
+  entr \
   fd-find \
   fzf \
   gh \
@@ -29,7 +32,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   python3 \
   python3-pip \
   redis-tools \
-  entr \
   ripgrep \
   shellcheck \
   sqlite3 \
@@ -47,6 +49,7 @@ RUN ln -sf /usr/bin/fdfind /usr/local/bin/fd \
 # Install Python tools globally
 RUN pip3 install --no-cache-dir --break-system-packages \
   anthropic \
+  bandit \
   hatch \
   httpie \
   inspect-ai \
@@ -171,6 +174,23 @@ RUN ARCH=$(dpkg --print-architecture) && \
   tar -xzf /tmp/gron.tgz -C /usr/local/bin gron && \
   rm /tmp/gron.tgz
 
+# bun — JavaScript runtime and bundler
+# To update: check https://github.com/oven-sh/bun/releases/latest and SHASUMS256.txt for the new version.
+ARG BUN_VERSION=1.3.11
+ARG BUN_SHA256_AMD64="8611ba935af886f05a6f38740a15160326c15e5d5d07adef966130b4493607ed"
+ARG BUN_SHA256_ARM64="d13944da12a53ecc74bf6a720bd1d04c4555c038dfe422365356a7be47691fdf"
+RUN ARCH=$(dpkg --print-architecture) && \
+  if [ "$ARCH" = "amd64" ]; then SHA256="${BUN_SHA256_AMD64}"; BUN_ARCH="x64"; \
+  elif [ "$ARCH" = "arm64" ]; then SHA256="${BUN_SHA256_ARM64}"; BUN_ARCH="aarch64"; \
+  else echo "ERROR: Unsupported architecture: $ARCH" && exit 1; fi && \
+  wget "https://github.com/oven-sh/bun/releases/download/bun-v${BUN_VERSION}/bun-linux-${BUN_ARCH}.zip" \
+    -O /tmp/bun.zip && \
+  echo "${SHA256}  /tmp/bun.zip" | sha256sum --check && \
+  unzip /tmp/bun.zip -d /tmp/bun-extracted && \
+  mv /tmp/bun-extracted/bun-linux-${BUN_ARCH}/bun /usr/local/bin/bun && \
+  chmod +x /usr/local/bin/bun && \
+  rm -rf /tmp/bun.zip /tmp/bun-extracted
+
 # Go — system-wide installation
 # To update: check https://go.dev/dl/?mode=json for the latest version and SHA256s.
 ARG GO_VERSION=1.26.1
@@ -220,7 +240,7 @@ RUN echo 'eval "$(mise activate zsh)"' >> /home/node/.zshrc \
   && echo 'eval "$(mise activate bash)"' >> /home/node/.bashrc
 
 # Install Claude
-RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION} pnpm typescript tsx prettier eslint dprint
+RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION} pnpm typescript tsx prettier eslint dprint yarn markdownlint-cli pyright
 
 # Proxy configuration — defaults route through the ai_filtering_proxy container.
 # Override at runtime with -e HTTP_PROXY=... if needed.
