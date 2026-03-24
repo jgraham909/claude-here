@@ -4,9 +4,6 @@ ARG TZ
 ENV TZ="$TZ"
 
 ARG CLAUDE_CODE_VERSION=2.1.81
-ARG DPRINT_VERSION=0.51.1
-ARG DPRINT_SHA256_AMD64="674c1f9fcdf8a564c26cc027e080d0c4758a40a566e04a776fc83c875ad51d45"
-ARG DPRINT_SHA256_ARM64="05a0df273453f099092967641462951fd26dcad282a564f91cc4ad16ea02d526"
 
 # Install basic development tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -32,7 +29,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   python3 \
   python3-pip \
   redis-tools \
+  entr \
   ripgrep \
+  shellcheck \
   sqlite3 \
   tree \
   unzip \
@@ -62,6 +61,7 @@ RUN pip3 install --no-cache-dir --break-system-packages \
   referencing \
   ruff \
   uv \
+  yamllint \
   yq
 
 # Ensure default node user has access to /usr/local/share
@@ -97,16 +97,6 @@ RUN ARCH=$(dpkg --print-architecture) && \
   dpkg -i git-delta.deb && \
   rm git-delta.deb
 
-RUN ARCH=$(dpkg --print-architecture) && \
-  if [ "$ARCH" = "amd64" ]; then DPRINT_ARCH="x86_64-unknown-linux-gnu"; SHA256="${DPRINT_SHA256_AMD64}"; \
-  elif [ "$ARCH" = "arm64" ]; then DPRINT_ARCH="aarch64-unknown-linux-gnu"; SHA256="${DPRINT_SHA256_ARM64}"; \
-  else echo "ERROR: Unsupported architecture: $ARCH" && exit 1; fi && \
-  curl -fsSL "https://github.com/dprint/dprint/releases/download/${DPRINT_VERSION}/dprint-${DPRINT_ARCH}.zip" -o /tmp/dprint.zip \
-    && echo "${SHA256}  /tmp/dprint.zip" | sha256sum --check \
-    && unzip /tmp/dprint.zip -d /usr/local/bin \
-    && chmod +x /usr/local/bin/dprint \
-    && rm -rf /tmp/dprint.zip
-
 # mise — runtime version manager (Go, Rust, Ruby, etc. on demand)
 # To update: download the binary for each arch, run sha256sum, update ARGs below.
 # e.g. wget https://github.com/jdx/mise/releases/download/v${MISE_VERSION}/mise-v${MISE_VERSION}-linux-x64 -O /tmp/mise && sha256sum /tmp/mise
@@ -122,6 +112,79 @@ RUN ARCH=$(dpkg --print-architecture) && \
   echo "${SHA256}  /usr/local/bin/mise" | sha256sum --check && \
   chmod +x /usr/local/bin/mise
 
+# hadolint — Dockerfile linter
+# To update: check https://github.com/hadolint/hadolint/releases and download the .sha256 sidecar files.
+ARG HADOLINT_VERSION=2.14.0
+ARG HADOLINT_SHA256_AMD64="6bf226944684f56c84dd014e8b979d27425c0148f61b3bd99bcc6f39e9dc5a47"
+ARG HADOLINT_SHA256_ARM64="331f1d3511b84a4f1e3d18d52fec284723e4019552f4f47b19322a53ce9a40ed"
+RUN ARCH=$(dpkg --print-architecture) && \
+  if [ "$ARCH" = "amd64" ]; then SHA256="${HADOLINT_SHA256_AMD64}"; HADOLINT_ARCH="x86_64"; \
+  elif [ "$ARCH" = "arm64" ]; then SHA256="${HADOLINT_SHA256_ARM64}"; HADOLINT_ARCH="arm64"; \
+  else echo "ERROR: Unsupported architecture: $ARCH" && exit 1; fi && \
+  wget "https://github.com/hadolint/hadolint/releases/download/v${HADOLINT_VERSION}/hadolint-linux-${HADOLINT_ARCH}" \
+    -O /usr/local/bin/hadolint && \
+  echo "${SHA256}  /usr/local/bin/hadolint" | sha256sum --check && \
+  chmod +x /usr/local/bin/hadolint
+
+# gitleaks — secret scanner
+# To update: check https://github.com/gitleaks/gitleaks/releases and the checksums.txt file.
+ARG GITLEAKS_VERSION=8.30.1
+ARG GITLEAKS_SHA256_AMD64="551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"
+ARG GITLEAKS_SHA256_ARM64="e4a487ee7ccd7d3a7f7ec08657610aa3606637dab924210b3aee62570fb4b080"
+RUN ARCH=$(dpkg --print-architecture) && \
+  if [ "$ARCH" = "amd64" ]; then SHA256="${GITLEAKS_SHA256_AMD64}"; GITLEAKS_ARCH="x64"; \
+  elif [ "$ARCH" = "arm64" ]; then SHA256="${GITLEAKS_SHA256_ARM64}"; GITLEAKS_ARCH="arm64"; \
+  else echo "ERROR: Unsupported architecture: $ARCH" && exit 1; fi && \
+  wget "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_${GITLEAKS_ARCH}.tar.gz" \
+    -O /tmp/gitleaks.tar.gz && \
+  echo "${SHA256}  /tmp/gitleaks.tar.gz" | sha256sum --check && \
+  tar -xzf /tmp/gitleaks.tar.gz -C /usr/local/bin gitleaks && \
+  rm /tmp/gitleaks.tar.gz
+
+# trufflehog — secret scanner with verified findings
+# To update: check https://github.com/trufflesecurity/trufflehog/releases and the checksums.txt file.
+ARG TRUFFLEHOG_VERSION=3.94.0
+ARG TRUFFLEHOG_SHA256_AMD64="21a67ab716576fda96d96f6478d8b4da84c7a53b43eb27619faa0c228333dde2"
+ARG TRUFFLEHOG_SHA256_ARM64="f3383c04229a5b4b50becfe20901df053411323ec9f7d8f9d65719ecdb9df266"
+RUN ARCH=$(dpkg --print-architecture) && \
+  if [ "$ARCH" = "amd64" ]; then SHA256="${TRUFFLEHOG_SHA256_AMD64}"; TRUFFLEHOG_ARCH="amd64"; \
+  elif [ "$ARCH" = "arm64" ]; then SHA256="${TRUFFLEHOG_SHA256_ARM64}"; TRUFFLEHOG_ARCH="arm64"; \
+  else echo "ERROR: Unsupported architecture: $ARCH" && exit 1; fi && \
+  wget "https://github.com/trufflesecurity/trufflehog/releases/download/v${TRUFFLEHOG_VERSION}/trufflehog_${TRUFFLEHOG_VERSION}_linux_${TRUFFLEHOG_ARCH}.tar.gz" \
+    -O /tmp/trufflehog.tar.gz && \
+  echo "${SHA256}  /tmp/trufflehog.tar.gz" | sha256sum --check && \
+  tar -xzf /tmp/trufflehog.tar.gz -C /usr/local/bin trufflehog && \
+  rm /tmp/trufflehog.tar.gz
+
+# gron — make JSON greppable
+# To update: check https://github.com/tomnomnom/gron/releases and recompute sha256sum from the downloaded tgz.
+ARG GRON_VERSION=0.7.1
+ARG GRON_SHA256_AMD64="ca0335826b02b044fa05d7e951521e45c6ced1c381a73ed5803450088e18bf22"
+ARG GRON_SHA256_ARM64="5d1d4764723a0f768d9ddef0685a052f564c8bbf5e475382342faf4224a07d80"
+RUN ARCH=$(dpkg --print-architecture) && \
+  if [ "$ARCH" = "amd64" ]; then SHA256="${GRON_SHA256_AMD64}"; GRON_ARCH="amd64"; \
+  elif [ "$ARCH" = "arm64" ]; then SHA256="${GRON_SHA256_ARM64}"; GRON_ARCH="arm64"; \
+  else echo "ERROR: Unsupported architecture: $ARCH" && exit 1; fi && \
+  wget "https://github.com/tomnomnom/gron/releases/download/v${GRON_VERSION}/gron-linux-${GRON_ARCH}-${GRON_VERSION}.tgz" \
+    -O /tmp/gron.tgz && \
+  echo "${SHA256}  /tmp/gron.tgz" | sha256sum --check && \
+  tar -xzf /tmp/gron.tgz -C /usr/local/bin gron && \
+  rm /tmp/gron.tgz
+
+# Go — system-wide installation
+# To update: check https://go.dev/dl/?mode=json for the latest version and SHA256s.
+ARG GO_VERSION=1.26.1
+ARG GO_SHA256_AMD64="031f088e5d955bab8657ede27ad4e3bc5b7c1ba281f05f245bcc304f327c987a"
+ARG GO_SHA256_ARM64="a290581cfe4fe28ddd737dde3095f3dbeb7f2e4065cab4eae44dfc53b760c2f7"
+RUN ARCH=$(dpkg --print-architecture) && \
+  if [ "$ARCH" = "amd64" ]; then SHA256="${GO_SHA256_AMD64}"; \
+  elif [ "$ARCH" = "arm64" ]; then SHA256="${GO_SHA256_ARM64}"; \
+  else echo "ERROR: Unsupported architecture: $ARCH" && exit 1; fi && \
+  wget "https://dl.google.com/go/go${GO_VERSION}.linux-${ARCH}.tar.gz" -O /tmp/go.tar.gz && \
+  echo "${SHA256}  /tmp/go.tar.gz" | sha256sum --check && \
+  tar -C /usr/local -xzf /tmp/go.tar.gz && \
+  rm /tmp/go.tar.gz
+
 COPY --chown=node:node gitconfig /home/node/.gitconfig
 
 # Set up non-root user
@@ -129,7 +192,7 @@ USER node
 
 # Install global packages
 ENV NPM_CONFIG_PREFIX=/usr/local/share/npm-global
-ENV PATH=$PATH:/usr/local/share/npm-global/bin:/home/node/.local/share/mise/shims
+ENV PATH=$PATH:/usr/local/share/npm-global/bin:/home/node/.local/share/mise/shims:/usr/local/go/bin
 
 # Set the default shell to zsh rather than sh
 ENV SHELL=/bin/zsh
@@ -157,7 +220,7 @@ RUN echo 'eval "$(mise activate zsh)"' >> /home/node/.zshrc \
   && echo 'eval "$(mise activate bash)"' >> /home/node/.bashrc
 
 # Install Claude
-RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION} pnpm typescript tsx
+RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION} pnpm typescript tsx prettier eslint dprint
 
 # Proxy configuration — defaults route through the ai_filtering_proxy container.
 # Override at runtime with -e HTTP_PROXY=... if needed.
