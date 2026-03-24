@@ -24,9 +24,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   libxml2-utils \
   make \
   man-db \
+  miller \
   nano \
+  ncdu \
   netcat-openbsd \
+  pandoc \
   parallel \
+  poppler-utils \
   postgresql-client \
   procps \
   python3 \
@@ -51,15 +55,20 @@ RUN ln -sf /usr/bin/fdfind /usr/local/bin/fd \
 RUN pip3 install --no-cache-dir --break-system-packages \
   anthropic \
   bandit \
+  bibtexparser \
+  csvkit \
+  habanero \
   hatch \
   httpie \
   httpx \
   inspect-ai \
   ipywidgets \
   jsonschema \
+  lxml \
   mypy \
   notebook \
   openai \
+  pandas \
   pre-commit \
   pydantic \
   pylint \
@@ -208,6 +217,22 @@ RUN ARCH=$(dpkg --print-architecture) && \
   echo "${SHA256}  /tmp/zoxide.tar.gz" | sha256sum --check && \
   tar -xzf /tmp/zoxide.tar.gz -C /usr/local/bin zoxide && \
   rm /tmp/zoxide.tar.gz
+
+# tokei — code statistics (line counts by language)
+# Note: aarch64 musl build is not published; arm64 uses the gnu variant.
+# To update: check https://github.com/XAMPPRocky/tokei/releases and recompute sha256sum from the downloaded tgz.
+ARG TOKEI_VERSION=12.1.2
+ARG TOKEI_SHA256_AMD64="331e77046935d655dce8d97ebb943fcc7e9684586dadf3d197f3df5e760cd31b"
+ARG TOKEI_SHA256_ARM64="ef514fd12cfc3ee2d1725e5ecb866ee1123163004879ec285b22f3323389ebe2"
+RUN ARCH=$(dpkg --print-architecture) && \
+  if [ "$ARCH" = "amd64" ]; then SHA256="${TOKEI_SHA256_AMD64}"; TOKEI_ASSET="tokei-x86_64-unknown-linux-musl.tar.gz"; \
+  elif [ "$ARCH" = "arm64" ]; then SHA256="${TOKEI_SHA256_ARM64}"; TOKEI_ASSET="tokei-aarch64-unknown-linux-gnu.tar.gz"; \
+  else echo "ERROR: Unsupported architecture: $ARCH" && exit 1; fi && \
+  wget "https://github.com/XAMPPRocky/tokei/releases/download/v${TOKEI_VERSION}/${TOKEI_ASSET}" \
+    -O /tmp/tokei.tar.gz && \
+  echo "${SHA256}  /tmp/tokei.tar.gz" | sha256sum --check && \
+  tar -xzf /tmp/tokei.tar.gz -C /usr/local/bin tokei && \
+  rm /tmp/tokei.tar.gz
 
 # bun — JavaScript runtime and bundler
 # To update: check https://github.com/oven-sh/bun/releases/latest and SHASUMS256.txt for the new version.
