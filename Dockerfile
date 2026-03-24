@@ -43,6 +43,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   unzip \
   vim \
   xxd \
+  xz-utils \
   zsh \
   && apt-get clean && rm -rf /var/lib/apt/lists/*
 
@@ -76,6 +77,7 @@ RUN pip3 install --no-cache-dir --break-system-packages \
   referencing \
   requests \
   ruff \
+  semgrep \
   uv \
   yamllint \
   yq
@@ -233,6 +235,67 @@ RUN ARCH=$(dpkg --print-architecture) && \
   echo "${SHA256}  /tmp/tokei.tar.gz" | sha256sum --check && \
   tar -xzf /tmp/tokei.tar.gz -C /usr/local/bin tokei && \
   rm /tmp/tokei.tar.gz
+
+# just — command runner (Justfile)
+# To update: check https://github.com/casey/just/releases and the SHA256SUMS file.
+ARG JUST_VERSION=1.48.0
+ARG JUST_SHA256_AMD64="a62e100de2922519ff3d6128f580837b4c0e197aa61a6fb448f43e50e7dd9b9b"
+ARG JUST_SHA256_ARM64="3c28914f0059161bc263c41db0ed3f786866cfb9632d1ee7809f529c8f18835e"
+RUN ARCH=$(dpkg --print-architecture) && \
+  if [ "$ARCH" = "amd64" ]; then SHA256="${JUST_SHA256_AMD64}"; JUST_ARCH="x86_64-unknown-linux-musl"; \
+  elif [ "$ARCH" = "arm64" ]; then SHA256="${JUST_SHA256_ARM64}"; JUST_ARCH="aarch64-unknown-linux-musl"; \
+  else echo "ERROR: Unsupported architecture: $ARCH" && exit 1; fi && \
+  wget "https://github.com/casey/just/releases/download/${JUST_VERSION}/just-${JUST_VERSION}-${JUST_ARCH}.tar.gz" \
+    -O /tmp/just.tar.gz && \
+  echo "${SHA256}  /tmp/just.tar.gz" | sha256sum --check && \
+  tar -xzf /tmp/just.tar.gz -C /usr/local/bin just && \
+  rm /tmp/just.tar.gz
+
+# hyperfine — benchmarking tool
+# To update: check https://github.com/sharkdp/hyperfine/releases and recompute sha256sum from the downloaded tgz.
+# Note: no official checksums file; checksums computed from downloaded release assets.
+ARG HYPERFINE_VERSION=1.20.0
+ARG HYPERFINE_SHA256_AMD64="3285ec7959285288137043dd81dce0dde056227018a8277532d9a364b4f03c2b"
+ARG HYPERFINE_SHA256_ARM64="90875cb1db7a1d797c311174d061728361e58fc70e3b62262a00635ac3b1997c"
+RUN ARCH=$(dpkg --print-architecture) && \
+  if [ "$ARCH" = "amd64" ]; then SHA256="${HYPERFINE_SHA256_AMD64}"; HYPERFINE_ASSET="hyperfine-v${HYPERFINE_VERSION}-x86_64-unknown-linux-musl.tar.gz"; \
+  elif [ "$ARCH" = "arm64" ]; then SHA256="${HYPERFINE_SHA256_ARM64}"; HYPERFINE_ASSET="hyperfine-v${HYPERFINE_VERSION}-aarch64-unknown-linux-gnu.tar.gz"; \
+  else echo "ERROR: Unsupported architecture: $ARCH" && exit 1; fi && \
+  wget "https://github.com/sharkdp/hyperfine/releases/download/v${HYPERFINE_VERSION}/${HYPERFINE_ASSET}" \
+    -O /tmp/hyperfine.tar.gz && \
+  echo "${SHA256}  /tmp/hyperfine.tar.gz" | sha256sum --check && \
+  tar -xzf /tmp/hyperfine.tar.gz --strip-components=1 -C /usr/local/bin --wildcards '*/hyperfine' && \
+  rm /tmp/hyperfine.tar.gz
+
+# websocat — WebSocket client
+# To update: check https://github.com/vi/websocat/releases and recompute sha256sum from the downloaded binary.
+# Note: no official checksums file; checksums computed from downloaded release assets.
+ARG WEBSOCAT_VERSION=1.14.1
+ARG WEBSOCAT_SHA256_AMD64="66f8dd3a0394761556339117f8bb5123bddefd44e087af2a72ec22b0bd08d514"
+ARG WEBSOCAT_SHA256_ARM64="711a69576a2ff473fb01a90ffafb571c2ed019e55479d7ae71b12c2eadeb7011"
+RUN ARCH=$(dpkg --print-architecture) && \
+  if [ "$ARCH" = "amd64" ]; then SHA256="${WEBSOCAT_SHA256_AMD64}"; WEBSOCAT_ARCH="x86_64-unknown-linux-musl"; \
+  elif [ "$ARCH" = "arm64" ]; then SHA256="${WEBSOCAT_SHA256_ARM64}"; WEBSOCAT_ARCH="aarch64-unknown-linux-musl"; \
+  else echo "ERROR: Unsupported architecture: $ARCH" && exit 1; fi && \
+  wget "https://github.com/vi/websocat/releases/download/v${WEBSOCAT_VERSION}/websocat.${WEBSOCAT_ARCH}" \
+    -O /usr/local/bin/websocat && \
+  echo "${SHA256}  /usr/local/bin/websocat" | sha256sum --check && \
+  chmod +x /usr/local/bin/websocat
+
+# watchexec — file watcher and command runner
+# To update: check https://github.com/watchexec/watchexec/releases and the SHA256SUMS file.
+ARG WATCHEXEC_VERSION=2.5.0
+ARG WATCHEXEC_SHA256_AMD64="e8015bffea46d9de5cc7ff061afa2d27593e1a1914b406343ef47bb65f5f0634"
+ARG WATCHEXEC_SHA256_ARM64="039bc93a4eb395d96127d0ecb6833d742cb41bf9fe9038bb3d6ca5ae507a196e"
+RUN ARCH=$(dpkg --print-architecture) && \
+  if [ "$ARCH" = "amd64" ]; then SHA256="${WATCHEXEC_SHA256_AMD64}"; WATCHEXEC_ARCH="x86_64-unknown-linux-musl"; \
+  elif [ "$ARCH" = "arm64" ]; then SHA256="${WATCHEXEC_SHA256_ARM64}"; WATCHEXEC_ARCH="aarch64-unknown-linux-musl"; \
+  else echo "ERROR: Unsupported architecture: $ARCH" && exit 1; fi && \
+  wget "https://github.com/watchexec/watchexec/releases/download/v${WATCHEXEC_VERSION}/watchexec-${WATCHEXEC_VERSION}-${WATCHEXEC_ARCH}.tar.xz" \
+    -O /tmp/watchexec.tar.xz && \
+  echo "${SHA256}  /tmp/watchexec.tar.xz" | sha256sum --check && \
+  tar -xJf /tmp/watchexec.tar.xz --strip-components=1 -C /usr/local/bin --wildcards '*/watchexec' && \
+  rm /tmp/watchexec.tar.xz
 
 # bun — JavaScript runtime and bundler
 # To update: check https://github.com/oven-sh/bun/releases/latest and SHASUMS256.txt for the new version.
