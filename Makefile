@@ -48,5 +48,3 @@ claude-here: check-network
 		$(PROJECT) bash -c '/usr/local/bin/motd.sh && exec claude'
 
 
-update-requirements:
-	pip-compile --generate-hashes --output-file requirements.txt requirements.in

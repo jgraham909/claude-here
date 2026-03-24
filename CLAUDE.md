@@ -11,7 +11,6 @@ This is a Docker-based development container configuration for running Claude Co
 - `make docker-build` — Build the Docker image (`claude-code:latest`)
 - `make claude-here` — Run Claude Code CLI in a container (mounts current directory, requires `ai_proxy_network_internal`)
 - `make bash` — Open a bash shell in a new container (requires `ai_proxy_network_internal`)
-- `make update-requirements` — Regenerate `requirements.txt` from `requirements.in`
 
 Host-side Claude config is stored at `~/.docker-claude` and mounted into the container at `/home/node/claude-config`.
 
@@ -25,14 +24,10 @@ Host-side Claude config is stored at `~/.docker-claude` and mounted into the con
 
 **motd.sh**: Startup banner sourced by `.zshrc`/`.bashrc` on shell open. Shows installed vs. latest versions of claude-code and the anthropic Python package, proxy connectivity status, and a warning when running in unfiltered mode.
 
-**requirements.in**: Human-maintained list of direct Python dependencies. Edit this to add or upgrade packages.
-
-**requirements.txt**: Generated full dependency lock file with SHA-256 hashes for all packages (direct and transitive). Regenerate with `make update-requirements`. Do not edit by hand.
-
 ## Key Details
 
 - The container's working directory is `/workspace`, but `make claude-here` mounts the host CWD to `/<dirname>`
 - The container has no direct internet access — the `ai_filtering_proxy` container is the only egress path
 - Shell history persists via a `/commandhistory` volume
-- Python packages are installed with `--require-hashes` against Python 3.11 (Debian bookworm); regenerate `requirements.txt` if the base image Python version changes
+- Python packages are installed globally via `pip3 install --break-system-packages` directly in the Dockerfile; add or remove packages there
 - **Unfiltered mode**: passing `UNFILTERED=1` (via `claude-here --unfiltered`) attaches the container to the `bridge` network with all proxy env vars cleared, giving direct internet access. The startup banner displays a prominent warning in this mode.

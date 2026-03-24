@@ -11,25 +11,53 @@ ARG DPRINT_SHA256_ARM64="05a0df273453f099092967641462951fd26dcad282a564f91cc4ad1
 # Install basic development tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
   dnsutils \
+  fd-find \
   fzf \
   gh \
   git \
+  git-lfs \
   gnupg2 \
+  htop \
   jq \
   less \
+  libxml2-utils \
+  make \
   man-db \
   nano \
+  postgresql-client \
   procps \
   python3 \
   python3-pip \
+  redis-tools \
+  ripgrep \
+  sqlite3 \
+  tree \
   unzip \
   vim \
   zsh \
   && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt /tmp/requirements.txt
-RUN pip3 install --no-cache-dir --break-system-packages --require-hashes -r /tmp/requirements.txt \
-  && rm /tmp/requirements.txt
+# fd is packaged as fdfind on Debian
+RUN ln -sf /usr/bin/fdfind /usr/local/bin/fd
+
+# Install Python tools globally
+RUN pip3 install --no-cache-dir --break-system-packages \
+  anthropic \
+  hatch \
+  httpie \
+  inspect-ai \
+  ipywidgets \
+  jsonschema \
+  mypy \
+  notebook \
+  openai \
+  pre-commit \
+  pylint \
+  pytest \
+  referencing \
+  ruff \
+  uv \
+  yq
 
 # Ensure default node user has access to /usr/local/share
 RUN mkdir -p /usr/local/share/npm-global && \
@@ -104,7 +132,7 @@ RUN wget "https://github.com/deluan/zsh-in-docker/releases/download/v${ZSH_IN_DO
   && rm /tmp/zsh-in-docker.sh
 
 # Install Claude
-RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}
+RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION} pnpm
 
 # Proxy configuration — defaults route through the ai_filtering_proxy container.
 # Override at runtime with -e HTTP_PROXY=... if needed.

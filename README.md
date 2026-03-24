@@ -33,7 +33,6 @@ Your current directory is mounted into the container at `/<dirname>` and set as 
 | `make docker-build` | Build the `claude-code:latest` image |
 | `make claude-here` | Run Claude Code in a container against the current directory (filtered mode) |
 | `make bash` | Open a bash shell in a fresh container |
-| `make update-requirements` | Regenerate `requirements.txt` from `requirements.in` (requires `pip-tools`) |
 
 ## Network Architecture
 
@@ -93,19 +92,11 @@ Each binary is pinned by version and verified with a SHA-256 checksum at build t
 
 ### Python packages
 
-Direct dependencies are listed in `requirements.in`. The fully resolved lock file with SHA-256 hashes for all packages (direct and transitive) is in `requirements.txt`.
+Python packages are installed globally in the Dockerfile via `pip3 install --break-system-packages`. To add, remove, or upgrade a package, edit the `pip3 install` block in the Dockerfile and rebuild:
 
-To add, remove, or upgrade a Python package:
-
-1. Edit `requirements.in`
-2. Regenerate the lock file: `make update-requirements` (requires `pip-tools`: `pip install pip-tools`)
-3. Rebuild: `make docker-build`
-
-> **Important — Python version pinning caveat:** `requirements.txt` was generated against **Python 3.11** (the version shipped in Debian bookworm, which is the base for `node:20`). Some packages publish Python-version-specific wheels, so the hashes in the lock file are only guaranteed correct for Python 3.11. If the `node:20` base image ever upgrades to a new Python minor version, `requirements.txt` must be regenerated. Check the Python version in the image with:
-> ```bash
-> docker run --rm claude-code:latest python3 --version
-> ```
-> If it no longer reports `3.11.x`, regenerate the lock file as described above.
+```bash
+make docker-build
+```
 
 ## Standalone `claude-here` command
 
@@ -159,5 +150,3 @@ This makes `claude-here --unfiltered` a good research platform — Claude can fr
 | `Makefile` | Convenience wrappers around `docker build` / `docker run` |
 | `claude-here` | Standalone script — run Claude Code from any directory without `make` |
 | `motd.sh` | Startup banner displayed when a container opens |
-| `requirements.in` | Human-maintained list of direct Python dependencies |
-| `requirements.txt` | Generated full dependency lock file with SHA-256 hashes — do not edit by hand |
