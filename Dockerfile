@@ -53,6 +53,7 @@ RUN pip3 install --no-cache-dir --break-system-packages \
   bandit \
   hatch \
   httpie \
+  httpx \
   inspect-ai \
   ipywidgets \
   jsonschema \
@@ -60,9 +61,11 @@ RUN pip3 install --no-cache-dir --break-system-packages \
   notebook \
   openai \
   pre-commit \
+  pydantic \
   pylint \
   pytest \
   referencing \
+  requests \
   ruff \
   uv \
   yamllint \
