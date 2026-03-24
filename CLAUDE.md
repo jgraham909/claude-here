@@ -17,9 +17,13 @@ Host-side Claude config is stored at `~/.docker-claude` and mounted into the con
 
 ## Architecture
 
-**Dockerfile**: Based on `node:20`. Installs Claude Code via npm globally, sets up a non-root `node` user, configures zsh with powerlevel10k, and installs dev tools (git, gh, vim, nano, fzf, git-delta, dprint). The `CLAUDE_CODE_VERSION` build arg controls the CLI version. All binary downloads are pinned by version and verified with SHA-256 checksums at build time.
+**Dockerfile**: Based on `node:20`. Installs Claude Code via npm globally, sets up a non-root `node` user, configures zsh with powerlevel10k, installs dev tools via apt and pinned binary releases (see Dockerfile for the current list), and runs `motd.sh` as a startup banner. The `CLAUDE_CODE_VERSION` build arg controls the CLI version. All binary downloads are pinned by version and verified with SHA-256 checksums at build time.
 
 **Makefile**: Wrapper around `docker build` and `docker run`. Containers run as UID 1000:1000 (`node` user), are attached exclusively to `ai_proxy_network_internal`, and have `HTTP_PROXY`/`HTTPS_PROXY` set to route through the proxy. Both targets verify the network exists before starting.
+
+**claude-here**: Standalone shell script equivalent of `make claude-here`. Can be symlinked onto `PATH` to run Claude Code from any directory without `make` or the repo present.
+
+**motd.sh**: Startup banner sourced by `.zshrc`/`.bashrc` on shell open. Shows installed vs. latest versions of claude-code and the anthropic Python package, proxy connectivity status, and a warning when running in unfiltered mode.
 
 **requirements.in**: Human-maintained list of direct Python dependencies. Edit this to add or upgrade packages.
 
@@ -31,3 +35,4 @@ Host-side Claude config is stored at `~/.docker-claude` and mounted into the con
 - The container has no direct internet access — the `ai_filtering_proxy` container is the only egress path
 - Shell history persists via a `/commandhistory` volume
 - Python packages are installed with `--require-hashes` against Python 3.11 (Debian bookworm); regenerate `requirements.txt` if the base image Python version changes
+- **Unfiltered mode**: passing `UNFILTERED=1` (via `claude-here --unfiltered`) attaches the container to the `bridge` network with all proxy env vars cleared, giving direct internet access. The startup banner displays a prominent warning in this mode.

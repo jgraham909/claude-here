@@ -74,7 +74,7 @@ docker build --build-arg TZ=America/New_York -t claude-code:latest .
 
 ### Claude Code version
 
-The CLI version is pinned via `CLAUDE_CODE_VERSION` in the Dockerfile (currently `2.1.50`). To upgrade:
+The CLI version is pinned via `CLAUDE_CODE_VERSION` in the Dockerfile (currently `2.1.81`). To upgrade:
 
 1. Update the `ARG CLAUDE_CODE_VERSION=` line in the Dockerfile
 2. Rebuild: `make docker-build`
