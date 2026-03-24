@@ -10,6 +10,7 @@ ARG DPRINT_SHA256_ARM64="05a0df273453f099092967641462951fd26dcad282a564f91cc4ad1
 
 # Install basic development tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
+  bat \
   dnsutils \
   fd-find \
   fzf \
@@ -24,6 +25,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   make \
   man-db \
   nano \
+  netcat-openbsd \
+  parallel \
   postgresql-client \
   procps \
   python3 \
@@ -34,11 +37,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   tree \
   unzip \
   vim \
+  xxd \
   zsh \
   && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# fd is packaged as fdfind on Debian
-RUN ln -sf /usr/bin/fdfind /usr/local/bin/fd
+# fd is packaged as fdfind on Debian; bat is packaged as batcat on Debian
+RUN ln -sf /usr/bin/fdfind /usr/local/bin/fd \
+  && ln -sf /usr/bin/batcat /usr/local/bin/bat
 
 # Install Python tools globally
 RUN pip3 install --no-cache-dir --break-system-packages \
@@ -102,13 +107,29 @@ RUN ARCH=$(dpkg --print-architecture) && \
     && chmod +x /usr/local/bin/dprint \
     && rm -rf /tmp/dprint.zip
 
+# mise — runtime version manager (Go, Rust, Ruby, etc. on demand)
+# To update: download the binary for each arch, run sha256sum, update ARGs below.
+# e.g. wget https://github.com/jdx/mise/releases/download/v${MISE_VERSION}/mise-v${MISE_VERSION}-linux-x64 -O /tmp/mise && sha256sum /tmp/mise
+ARG MISE_VERSION=2026.3.13
+ARG MISE_SHA256_AMD64="806790b4a71c93d20e027c40ddf38470fa6e26555275b1181a3c2ccc082ef56f"
+ARG MISE_SHA256_ARM64="c1f56fd3c44a219bbb7064af240b4d3c3e4697b4d88377b8c52576f9a572627e"
+RUN ARCH=$(dpkg --print-architecture) && \
+  if [ "$ARCH" = "amd64" ]; then SHA256="${MISE_SHA256_AMD64}"; MISE_ARCH="x64"; \
+  elif [ "$ARCH" = "arm64" ]; then SHA256="${MISE_SHA256_ARM64}"; MISE_ARCH="arm64"; \
+  else echo "ERROR: Unsupported architecture: $ARCH" && exit 1; fi && \
+  wget "https://github.com/jdx/mise/releases/download/v${MISE_VERSION}/mise-v${MISE_VERSION}-linux-${MISE_ARCH}" \
+    -O /usr/local/bin/mise && \
+  echo "${SHA256}  /usr/local/bin/mise" | sha256sum --check && \
+  chmod +x /usr/local/bin/mise
+
+COPY --chown=node:node gitconfig /home/node/.gitconfig
 
 # Set up non-root user
 USER node
 
 # Install global packages
 ENV NPM_CONFIG_PREFIX=/usr/local/share/npm-global
-ENV PATH=$PATH:/usr/local/share/npm-global/bin
+ENV PATH=$PATH:/usr/local/share/npm-global/bin:/home/node/.local/share/mise/shims
 
 # Set the default shell to zsh rather than sh
 ENV SHELL=/bin/zsh
@@ -131,8 +152,12 @@ RUN wget "https://github.com/deluan/zsh-in-docker/releases/download/v${ZSH_IN_DO
   -x \
   && rm /tmp/zsh-in-docker.sh
 
+# mise shell integration (enables auto-switching on cd)
+RUN echo 'eval "$(mise activate zsh)"' >> /home/node/.zshrc \
+  && echo 'eval "$(mise activate bash)"' >> /home/node/.bashrc
+
 # Install Claude
-RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION} pnpm
+RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION} pnpm typescript tsx
 
 # Proxy configuration — defaults route through the ai_filtering_proxy container.
 # Override at runtime with -e HTTP_PROXY=... if needed.
