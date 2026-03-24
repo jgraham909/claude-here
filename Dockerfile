@@ -42,9 +42,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   zsh \
   && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# fd is packaged as fdfind on Debian; bat is packaged as batcat on Debian
+# fd is packaged as fdfind on Debian; bat is packaged as batcat on Debian; ripgrep is rg on Debian
 RUN ln -sf /usr/bin/fdfind /usr/local/bin/fd \
-  && ln -sf /usr/bin/batcat /usr/local/bin/bat
+  && ln -sf /usr/bin/batcat /usr/local/bin/bat \
+  && ln -sf /usr/bin/rg /usr/local/bin/ripgrep
 
 # Install Python tools globally
 RUN pip3 install --no-cache-dir --break-system-packages \
@@ -174,6 +175,37 @@ RUN ARCH=$(dpkg --print-architecture) && \
   tar -xzf /tmp/gron.tgz -C /usr/local/bin gron && \
   rm /tmp/gron.tgz
 
+# eza — modern ls replacement
+# To update: check https://github.com/eza-community/eza/releases and the sha256sums in the release body.
+# Note: aarch64 musl build is not published; arm64 uses the gnu variant.
+ARG EZA_VERSION=0.23.4
+ARG EZA_SHA256_AMD64="d231bb3ee33b08c76279b5888845dceb7034d055c42bb9be46dbe0dae39394df"
+ARG EZA_SHA256_ARM64="366e8430225f9955c3dc659b452150c169894833ccfef455e01765e265a3edda"
+RUN ARCH=$(dpkg --print-architecture) && \
+  if [ "$ARCH" = "amd64" ]; then SHA256="${EZA_SHA256_AMD64}"; EZA_ASSET="eza_x86_64-unknown-linux-musl.tar.gz"; \
+  elif [ "$ARCH" = "arm64" ]; then SHA256="${EZA_SHA256_ARM64}"; EZA_ASSET="eza_aarch64-unknown-linux-gnu.tar.gz"; \
+  else echo "ERROR: Unsupported architecture: $ARCH" && exit 1; fi && \
+  wget "https://github.com/eza-community/eza/releases/download/v${EZA_VERSION}/${EZA_ASSET}" \
+    -O /tmp/eza.tar.gz && \
+  echo "${SHA256}  /tmp/eza.tar.gz" | sha256sum --check && \
+  tar -xzf /tmp/eza.tar.gz -C /usr/local/bin ./eza && \
+  rm /tmp/eza.tar.gz
+
+# zoxide — smarter cd
+# To update: check https://github.com/ajeetdsouza/zoxide/releases and recompute sha256sum from the downloaded tgz.
+ARG ZOXIDE_VERSION=0.9.9
+ARG ZOXIDE_SHA256_AMD64="4ff057d3c4d957946937274c2b8be7af2a9bbae7f90a1b5e9baaa7cb65a20caa"
+ARG ZOXIDE_SHA256_ARM64="96e6ea2e47a71db42cb7ad5a36e9209c8cb3708f8ae00f6945573d0d93315cb0"
+RUN ARCH=$(dpkg --print-architecture) && \
+  if [ "$ARCH" = "amd64" ]; then SHA256="${ZOXIDE_SHA256_AMD64}"; ZOXIDE_ARCH="x86_64"; \
+  elif [ "$ARCH" = "arm64" ]; then SHA256="${ZOXIDE_SHA256_ARM64}"; ZOXIDE_ARCH="aarch64"; \
+  else echo "ERROR: Unsupported architecture: $ARCH" && exit 1; fi && \
+  wget "https://github.com/ajeetdsouza/zoxide/releases/download/v${ZOXIDE_VERSION}/zoxide-${ZOXIDE_VERSION}-${ZOXIDE_ARCH}-unknown-linux-musl.tar.gz" \
+    -O /tmp/zoxide.tar.gz && \
+  echo "${SHA256}  /tmp/zoxide.tar.gz" | sha256sum --check && \
+  tar -xzf /tmp/zoxide.tar.gz -C /usr/local/bin zoxide && \
+  rm /tmp/zoxide.tar.gz
+
 # bun — JavaScript runtime and bundler
 # To update: check https://github.com/oven-sh/bun/releases/latest and SHASUMS256.txt for the new version.
 ARG BUN_VERSION=1.3.11
@@ -212,14 +244,14 @@ USER node
 
 # Install global packages
 ENV NPM_CONFIG_PREFIX=/usr/local/share/npm-global
-ENV PATH=$PATH:/usr/local/share/npm-global/bin:/home/node/.local/share/mise/shims:/usr/local/go/bin
+ENV PATH=$PATH:/usr/local/share/npm-global/bin:/home/node/.local/share/mise/shims:/usr/local/go/bin:/home/node/go/bin
 
 # Set the default shell to zsh rather than sh
 ENV SHELL=/bin/zsh
 
 # Set the default editor and visual
-ENV EDITOR=nano
-ENV VISUAL=nano
+ENV EDITOR=vim
+ENV VISUAL=vim
 
 # Default powerline10k theme
 ARG ZSH_IN_DOCKER_VERSION=1.2.0
@@ -238,6 +270,10 @@ RUN wget "https://github.com/deluan/zsh-in-docker/releases/download/v${ZSH_IN_DO
 # mise shell integration (enables auto-switching on cd)
 RUN echo 'eval "$(mise activate zsh)"' >> /home/node/.zshrc \
   && echo 'eval "$(mise activate bash)"' >> /home/node/.bashrc
+
+# zoxide shell integration (enables z/zi commands)
+RUN echo 'eval "$(zoxide init zsh)"' >> /home/node/.zshrc \
+  && echo 'eval "$(zoxide init bash)"' >> /home/node/.bashrc
 
 # Install Claude
 RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION} pnpm typescript tsx prettier eslint dprint yarn markdownlint-cli pyright
