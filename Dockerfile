@@ -3,7 +3,7 @@ FROM node:20
 ARG TZ
 ENV TZ="$TZ"
 
-ARG CLAUDE_CODE_VERSION=2.1.81
+ARG CLAUDE_CODE_VERSION=2.1.83
 
 # Install basic development tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -22,6 +22,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   jq \
   less \
   libxml2-utils \
+  lsof \
   make \
   man-db \
   miller \
@@ -41,6 +42,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   sqlite3 \
   tree \
   unzip \
+  uuid-runtime \
   vim \
   xxd \
   xz-utils \
