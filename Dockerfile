@@ -29,6 +29,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   nano \
   ncdu \
   netcat-openbsd \
+  nmap \
   pandoc \
   parallel \
   poppler-utils \
@@ -40,6 +41,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   ripgrep \
   shellcheck \
   sqlite3 \
+  strace \
+  tmux \
   tree \
   unzip \
   uuid-runtime \
@@ -80,6 +83,7 @@ RUN pip3 install --no-cache-dir --break-system-packages \
   requests \
   ruff \
   semgrep \
+  tldr \
   uv \
   yamllint \
   yq
@@ -316,6 +320,36 @@ RUN ARCH=$(dpkg --print-architecture) && \
   chmod +x /usr/local/bin/bun && \
   rm -rf /tmp/bun.zip /tmp/bun-extracted
 
+# sd — user-friendly sed replacement
+# To update: check https://github.com/chmln/sd/releases and recompute sha256sum from the downloaded tgz.
+ARG SD_VERSION=1.1.0
+ARG SD_SHA256_AMD64="02f00f4777d43e8e95b7b8d49e1a0d6e502fed4b8e79c1c8b8063857a30caa2e"
+ARG SD_SHA256_ARM64="ec8c93c0533ff21f4851d11566808d4082544baf063d9b96ea77c27e98b7cd99"
+RUN ARCH=$(dpkg --print-architecture) && \
+  if [ "$ARCH" = "amd64" ]; then SHA256="${SD_SHA256_AMD64}"; SD_ARCH="x86_64"; \
+  elif [ "$ARCH" = "arm64" ]; then SHA256="${SD_SHA256_ARM64}"; SD_ARCH="aarch64"; \
+  else echo "ERROR: Unsupported architecture: $ARCH" && exit 1; fi && \
+  wget "https://github.com/chmln/sd/releases/download/v${SD_VERSION}/sd-v${SD_VERSION}-${SD_ARCH}-unknown-linux-musl.tar.gz" \
+    -O /tmp/sd.tar.gz && \
+  echo "${SHA256}  /tmp/sd.tar.gz" | sha256sum --check && \
+  tar -xzf /tmp/sd.tar.gz -C /tmp && \
+  mv /tmp/sd-v${SD_VERSION}-${SD_ARCH}-unknown-linux-musl/sd /usr/local/bin/sd && \
+  rm -rf /tmp/sd.tar.gz /tmp/sd-v*
+
+# marksman — Markdown language server
+# To update: check https://github.com/artempyanykh/marksman/releases and recompute sha256sum from the downloaded binaries.
+ARG MARKSMAN_VERSION="2026-02-08"
+ARG MARKSMAN_SHA256_AMD64="be5098e8213219269c47fc0d916a66fa31ce0602ec967475c722260aabf26087"
+ARG MARKSMAN_SHA256_ARM64="db8e124527f7f8048e3e6c91821b9c52ef173d92c01e47d221bf1337afd962fb"
+RUN ARCH=$(dpkg --print-architecture) && \
+  if [ "$ARCH" = "amd64" ]; then SHA256="${MARKSMAN_SHA256_AMD64}"; MARKSMAN_ARCH="x64"; \
+  elif [ "$ARCH" = "arm64" ]; then SHA256="${MARKSMAN_SHA256_ARM64}"; MARKSMAN_ARCH="arm64"; \
+  else echo "ERROR: Unsupported architecture: $ARCH" && exit 1; fi && \
+  wget "https://github.com/artempyanykh/marksman/releases/download/${MARKSMAN_VERSION}/marksman-linux-${MARKSMAN_ARCH}" \
+    -O /usr/local/bin/marksman && \
+  echo "${SHA256}  /usr/local/bin/marksman" | sha256sum --check && \
+  chmod +x /usr/local/bin/marksman
+
 # Go — system-wide installation
 # To update: check https://go.dev/dl/?mode=json for the latest version and SHA256s.
 ARG GO_VERSION=1.26.1
@@ -329,6 +363,13 @@ RUN ARCH=$(dpkg --print-architecture) && \
   echo "${SHA256}  /tmp/go.tar.gz" | sha256sum --check && \
   tar -C /usr/local -xzf /tmp/go.tar.gz && \
   rm /tmp/go.tar.gz
+
+# Go language tools (system-wide)
+# To update gopls: check https://github.com/golang/tools/releases
+# To update shfmt: check https://github.com/mvdan/sh/releases
+RUN GOBIN=/usr/local/bin /usr/local/go/bin/go install golang.org/x/tools/gopls@v0.21.1 \
+  && GOBIN=/usr/local/bin /usr/local/go/bin/go install mvdan.cc/sh/v3/cmd/shfmt@v3.13.0 \
+  && rm -rf /root/go /root/.cache/go-build
 
 COPY --chown=node:node gitconfig /home/node/.gitconfig
 
@@ -369,7 +410,13 @@ RUN echo 'eval "$(zoxide init zsh)"' >> /home/node/.zshrc \
   && echo 'eval "$(zoxide init bash)"' >> /home/node/.bashrc
 
 # Install Claude
-RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION} pnpm typescript tsx prettier eslint dprint yarn markdownlint-cli pyright
+RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION} pnpm typescript tsx prettier eslint dprint yarn markdownlint-cli pyright \
+  @biomejs/biome \
+  typescript-language-server \
+  svelte-language-server \
+  bash-language-server \
+  yaml-language-server \
+  dockerfile-language-server-nodejs
 
 # Proxy configuration — defaults route through the ai_filtering_proxy container.
 # Override at runtime with -e HTTP_PROXY=... if needed.
