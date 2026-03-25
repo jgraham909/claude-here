@@ -40,9 +40,9 @@ div() {
 }
 
 # ── Status icons ──────────────────────────────────────────────────────────────
-CHK=$(printf "${GRN}✓${RST}")
-CRS=$(printf "${RED}✗${RST}")
-CLK=$(printf "${YLW}⏱${RST}")
+CHK=$(printf '%b' "${GRN}✓${RST}")
+CRS=$(printf '%b' "${RED}✗${RST}")
+CLK=$(printf '%b' "${YLW}⏱${RST}")
 
 # ── Installed versions (local, fast) ─────────────────────────────────────────
 CLAUDE_INST=$(npm list -g @anthropic-ai/claude-code --depth=0 2>/dev/null \
@@ -93,12 +93,12 @@ ver_row() {
 # ── Proxy row ─────────────────────────────────────────────────────────────────
 PROXY_ROW2=""
 if [ "${UNFILTERED:-}" = "1" ]; then
-  PROXY_ROW=$(printf "${B}network${RST}         ${YLW}⚠  unfiltered — direct internet access${RST}")
+  PROXY_ROW=$(printf '%b' "${B}network${RST}         ${YLW}⚠  unfiltered — direct internet access${RST}")
 elif [ "$PROXY_STATUS" = "ok" ]; then
-  PROXY_ROW=$(printf "${B}filtering proxy${RST} ${CHK} active — domain allowlist enforced")
+  PROXY_ROW=$(printf '%b' "${B}filtering proxy${RST} ${CHK} active — domain allowlist enforced")
   PROXY_ROW2=$(printf "${DIM}via ai_filtering_proxy · %s${RST}" "${HTTP_PROXY:-unknown}")
 else
-  PROXY_ROW=$(printf "${B}filtering proxy${RST} ${CRS} $(printf "${RED}UNREACHABLE — network may be broken${RST}")")
+  PROXY_ROW=$(printf '%b' "${B}filtering proxy${RST} ${CRS} ${RED}UNREACHABLE — network may be broken${RST}")
   PROXY_ROW2=$(printf "${DIM}via ai_filtering_proxy · %s${RST}" "${HTTP_PROXY:-unknown}")
 fi
 
@@ -106,8 +106,8 @@ fi
 
 echo
 div "╔" "╗"
-row "$(printf "  ${B}${CYN}Claude Code Sandbox${RST}")"
-row "$(printf "  ${DIM}Built: ${BUILD_DATE:-unknown}${RST}")"
+row "$(printf '%b' "  ${B}${CYN}Claude Code Sandbox${RST}")"
+row "$(printf '%b' "  ${DIM}Built: ${BUILD_DATE:-unknown}${RST}")"
 div
 row "$(printf "${DIM}node${RST} %-8s  ${DIM}python${RST} %-7s  ${DIM}git${RST} %-8s  ${DIM}gh${RST} %s" \
   "$NODE_V" "$PY_V" "$GIT_V" "$GH_V")"
