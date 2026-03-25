@@ -14,6 +14,19 @@ PROXY_ENV = \
   -e NO_PROXY=localhost,127.0.0.1 \
   -e no_proxy=localhost,127.0.0.1
 
+# Local plugins: each subdirectory of ~/.docker-claude/local-plugins/ becomes
+# a --plugin-dir arg, mapped to its container path. Add plugins by running
+# `make sync-plugins` or by manually placing a plugin directory there.
+_LOCAL_PLUGINS := $(wildcard $(HOME)/.docker-claude/local-plugins/*)
+PLUGIN_ARGS    := $(foreach d,$(_LOCAL_PLUGINS),--plugin-dir $(CLAUDE_CONFIG_DIR)/local-plugins/$(notdir $(d)))
+
+sync-plugins:
+	@mkdir -p $(HOST_CLAUDE_CONFIG_DIR)/local-plugins
+	@for plugin in plugins/*/; do \
+		cp -r "$${plugin%/}" "$(HOST_CLAUDE_CONFIG_DIR)/local-plugins/"; \
+	done
+	@echo "Synced $$(ls -1 plugins/ | wc -l | tr -d ' ') plugin(s) to $(HOST_CLAUDE_CONFIG_DIR)/local-plugins/"
+
 docker-build:
 	@docker build -t $(PROJECT):latest \
 		--build-arg BUILD_DATE=$(shell date -u +%Y-%m-%d) \
@@ -45,6 +58,6 @@ claude-here: check-network
 		-v $(HOST_CLAUDE_CONFIG_DIR):$(CLAUDE_CONFIG_DIR) \
 		-v $(shell pwd):/$(CURRENT_DIR_NAME) \
 		-w /$(CURRENT_DIR_NAME) \
-		$(PROJECT) bash -c '/usr/local/bin/motd.sh && exec claude'
+		$(PROJECT) bash -c '/usr/local/bin/motd.sh && exec claude $(PLUGIN_ARGS)'
 
 

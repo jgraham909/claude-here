@@ -1,0 +1,15 @@
+{
+  "name": "yaml-lsp",
+  "version": "1.0.0",
+  "description": "YAML language server for Claude Code (yaml-language-server)",
+  "lspServers": {
+    "yaml": {
+      "command": "yaml-language-server",
+      "args": ["--stdio"],
+      "extensionToLanguage": {
+        ".yaml": "yaml",
+        ".yml": "yaml"
+      }
+    }
+  }
+}

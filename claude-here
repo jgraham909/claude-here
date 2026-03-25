@@ -32,6 +32,17 @@ done
 
 CURRENT_DIR_NAME=$(basename "$PWD")
 
+# Build --plugin-dir args from ~/.docker-claude/local-plugins/ subdirectories,
+# mapped to their container paths. Works for any plugins placed there, not just
+# those synced from this repo via `make sync-plugins`.
+PLUGIN_ARGS=""
+if [ -d "${HOST_CLAUDE_CONFIG_DIR}/local-plugins" ]; then
+  for plugin_dir in "${HOST_CLAUDE_CONFIG_DIR}/local-plugins"/*/; do
+    [ -d "$plugin_dir" ] || continue
+    PLUGIN_ARGS="${PLUGIN_ARGS} --plugin-dir ${CLAUDE_CONFIG_DIR}/local-plugins/$(basename "$plugin_dir")"
+  done
+fi
+
 if [ "$UNFILTERED" = "1" ]; then
   exec docker run -u 1000:1000 --rm -it \
     --network "$OPEN_NETWORK" \
@@ -46,7 +57,7 @@ if [ "$UNFILTERED" = "1" ]; then
     -v "$HOST_CLAUDE_CONFIG_DIR:$CLAUDE_CONFIG_DIR" \
     -v "$PWD:/$CURRENT_DIR_NAME" \
     -w "/$CURRENT_DIR_NAME" \
-    "$PROJECT" bash -c '/usr/local/bin/motd.sh && exec claude'
+    "$PROJECT" bash -c "/usr/local/bin/motd.sh && exec claude${PLUGIN_ARGS}"
 fi
 
 if ! docker network inspect "$AI_PROXY_NETWORK" >/dev/null 2>&1; then
@@ -66,4 +77,4 @@ exec docker run -u 1000:1000 --rm -it \
   -v "$HOST_CLAUDE_CONFIG_DIR:$CLAUDE_CONFIG_DIR" \
   -v "$PWD:/$CURRENT_DIR_NAME" \
   -w "/$CURRENT_DIR_NAME" \
-  "$PROJECT" bash -c '/usr/local/bin/motd.sh && exec claude'
+  "$PROJECT" bash -c "/usr/local/bin/motd.sh && exec claude${PLUGIN_ARGS}"

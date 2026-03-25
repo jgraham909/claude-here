@@ -1,0 +1,15 @@
+{
+  "name": "marksman-lsp",
+  "version": "1.0.0",
+  "description": "Markdown language server for Claude Code (marksman)",
+  "lspServers": {
+    "marksman": {
+      "command": "marksman",
+      "args": ["server"],
+      "extensionToLanguage": {
+        ".md": "markdown",
+        ".markdown": "markdown"
+      }
+    }
+  }
+}

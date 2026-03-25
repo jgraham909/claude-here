@@ -1,0 +1,14 @@
+{
+  "name": "dockerfile-lsp",
+  "version": "1.0.0",
+  "description": "Dockerfile language server for Claude Code (dockerfile-language-server-nodejs)",
+  "lspServers": {
+    "dockerfile": {
+      "command": "docker-langserver",
+      "args": ["--stdio"],
+      "extensionToLanguage": {
+        ".dockerfile": "dockerfile"
+      }
+    }
+  }
+}

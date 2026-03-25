@@ -1,0 +1,16 @@
+{
+  "name": "bash-lsp",
+  "version": "1.0.0",
+  "description": "Bash/shell language server for Claude Code (bash-language-server)",
+  "lspServers": {
+    "bash": {
+      "command": "bash-language-server",
+      "args": ["start"],
+      "extensionToLanguage": {
+        ".sh": "shellscript",
+        ".bash": "shellscript",
+        ".zsh": "shellscript"
+      }
+    }
+  }
+}

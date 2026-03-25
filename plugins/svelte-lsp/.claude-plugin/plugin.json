@@ -1,0 +1,14 @@
+{
+  "name": "svelte-lsp",
+  "version": "1.0.0",
+  "description": "Svelte language server for Claude Code (svelte-language-server). Requires typescript-language-server for embedded TypeScript support.",
+  "lspServers": {
+    "svelte": {
+      "command": "svelteserver",
+      "args": ["--stdio"],
+      "extensionToLanguage": {
+        ".svelte": "svelte"
+      }
+    }
+  }
+}
