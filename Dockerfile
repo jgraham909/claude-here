@@ -55,7 +55,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # fd is packaged as fdfind on Debian; bat is packaged as batcat on Debian; ripgrep is rg on Debian
 RUN ln -sf /usr/bin/fdfind /usr/local/bin/fd \
   && ln -sf /usr/bin/batcat /usr/local/bin/bat \
-  && ln -sf /usr/bin/rg /usr/local/bin/ripgrep
+  && ln -sf /usr/bin/rg /usr/local/bin/ripgrep \
+  && ln -sf /usr/bin/python3 /usr/local/bin/python
 
 # Install Python tools globally
 RUN pip3 install --no-cache-dir --break-system-packages \
