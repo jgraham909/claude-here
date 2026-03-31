@@ -19,6 +19,8 @@ set -euo pipefail
 PROJECT="claude-code"
 CLAUDE_CONFIG_DIR="/home/node/claude-config"
 HOST_CLAUDE_CONFIG_DIR="${HOME}/.docker-claude"
+CODEX_CONFIG_DIR="/home/node/.codex"
+HOST_CODEX_CONFIG_DIR="${HOME}/.docker-claude/codex"
 AI_PROXY_NETWORK="${AI_PROXY_NETWORK:-ai_proxy_network_internal}"
 PROXY_URL="${PROXY_URL:-http://ai_filtering_proxy:3128}"
 OPEN_NETWORK="${OPEN_NETWORK:-bridge}"
@@ -55,6 +57,7 @@ if [ "$UNFILTERED" = "1" ]; then
     -e UNFILTERED=1 \
     -e "CLAUDE_CONFIG_DIR=$CLAUDE_CONFIG_DIR" \
     -v "$HOST_CLAUDE_CONFIG_DIR:$CLAUDE_CONFIG_DIR" \
+    -v "$HOST_CODEX_CONFIG_DIR:$CODEX_CONFIG_DIR" \
     -v "$PWD:/$CURRENT_DIR_NAME" \
     -w "/$CURRENT_DIR_NAME" \
     "$PROJECT" bash -c "/usr/local/bin/motd.sh && exec claude${PLUGIN_ARGS}"
@@ -75,6 +78,7 @@ exec docker run -u 1000:1000 --rm -it \
   -e no_proxy=localhost,127.0.0.1 \
   -e "CLAUDE_CONFIG_DIR=$CLAUDE_CONFIG_DIR" \
   -v "$HOST_CLAUDE_CONFIG_DIR:$CLAUDE_CONFIG_DIR" \
+  -v "$HOST_CODEX_CONFIG_DIR:$CODEX_CONFIG_DIR" \
   -v "$PWD:/$CURRENT_DIR_NAME" \
   -w "/$CURRENT_DIR_NAME" \
   "$PROJECT" bash -c "/usr/local/bin/motd.sh && exec claude${PLUGIN_ARGS}"

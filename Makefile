@@ -2,8 +2,11 @@ PROJECT              = claude-code
 BUILD_DIR           ?= .
 HOST_CLAUDE_CONFIG_DIR = $${HOME}/.docker-claude
 CLAUDE_CONFIG_DIR    = /home/node/claude-config
+HOST_CODEX_CONFIG_DIR = $${HOME}/.docker-claude/codex
+CODEX_CONFIG_DIR     = /home/node/.codex
 CURRENT_DIR_NAME    := $(notdir $(shell pwd))
 AI_PROXY_NETWORK    ?= ai_proxy_network_internal
+OPEN_NETWORK        ?= bridge
 PROXY_URL           ?= http://ai_filtering_proxy:3128
 
 PROXY_ENV = \
@@ -43,10 +46,28 @@ bash: check-network
 		$(PROXY_ENV) \
 		-e "CLAUDE_CONFIG_DIR=$(CLAUDE_CONFIG_DIR)" \
 		-v $(HOST_CLAUDE_CONFIG_DIR):$(CLAUDE_CONFIG_DIR) \
+		-v $(HOST_CODEX_CONFIG_DIR):$(CODEX_CONFIG_DIR) \
 		-v $(shell pwd):/app \
 		-w /app \
 		$(PROJECT) bash
 
+bash-unfiltered:
+	@echo "running bash (unfiltered)"
+	@docker run -u 1000:1000 --rm -it \
+		--network $(OPEN_NETWORK) \
+		-e HTTP_PROXY="" \
+		-e HTTPS_PROXY="" \
+		-e http_proxy="" \
+		-e https_proxy="" \
+		-e NO_PROXY="" \
+		-e no_proxy="" \
+		-e UNFILTERED=1 \
+		-e "CLAUDE_CONFIG_DIR=$(CLAUDE_CONFIG_DIR)" \
+		-v $(HOST_CLAUDE_CONFIG_DIR):$(CLAUDE_CONFIG_DIR) \
+		-v $(HOST_CODEX_CONFIG_DIR):$(CODEX_CONFIG_DIR) \
+		-v $(shell pwd):/app \
+		-w /app \
+		$(PROJECT) bash
 
 claude-here: check-network
 	@echo "running claude"
@@ -56,6 +77,7 @@ claude-here: check-network
 		-e UNFILTERED=$(UNFILTERED) \
 		-e "CLAUDE_CONFIG_DIR=$(CLAUDE_CONFIG_DIR)" \
 		-v $(HOST_CLAUDE_CONFIG_DIR):$(CLAUDE_CONFIG_DIR) \
+		-v $(HOST_CODEX_CONFIG_DIR):$(CODEX_CONFIG_DIR) \
 		-v $(shell pwd):/$(CURRENT_DIR_NAME) \
 		-w /$(CURRENT_DIR_NAME) \
 		$(PROJECT) bash -c '/usr/local/bin/motd.sh && exec claude $(PLUGIN_ARGS)'

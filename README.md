@@ -69,6 +69,28 @@ The timezone can be set at build time:
 docker build --build-arg TZ=America/New_York -t claude-code:latest .
 ```
 
+## Codex Setup
+
+[OpenAI Codex CLI](https://github.com/openai/codex) is pre-installed and available as `codex` inside the container.
+
+### First-time authentication
+
+Codex stores its auth and config at `~/.codex/` relative to the user's home directory. Inside this container that is `/home/node/.codex/` — **separate from any Codex installation on your host OS** (where it would be at `~/.codex/`). The two never share credentials automatically.
+
+To authenticate for the first time, open a shell in a fresh container and run the normal init flow:
+
+```bash
+make bash
+# inside the container:
+codex
+```
+
+Follow the prompts to log in / set your API key. Codex will write its config to `/home/node/.codex/`.
+
+### Persisting auth across container restarts
+
+Codex auth is automatically persisted. `/home/node/.codex/` inside the container is bind-mounted to `~/.docker-claude/codex/` on the host, so credentials survive container restarts just like Claude's own config.
+
 ## Updating Dependencies
 
 ### Claude Code version

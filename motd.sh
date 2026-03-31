@@ -49,6 +49,8 @@ CLAUDE_INST=$(npm list -g @anthropic-ai/claude-code --depth=0 2>/dev/null \
   | grep claude-code | awk -F'@' '{print $NF}' | tr -d ' \n')
 ANTHR_INST=$(python3 -c "import anthropic; print(anthropic.__version__)" 2>/dev/null \
   || echo "n/a")
+CODEX_INST=$(npm list -g @openai/codex --depth=0 2>/dev/null \
+  | grep '@openai/codex' | awk -F'@' '{print $NF}' | tr -d ' \n')
 NODE_V=$(node -e "process.stdout.write(process.version.slice(1))" 2>/dev/null \
   || echo "n/a")
 PY_V=$(python3 -c "import sys; v=sys.version_info; print(f'{v.major}.{v.minor}.{v.micro}')" \
@@ -57,7 +59,7 @@ GIT_V=$(git --version 2>/dev/null | awk '{print $3}' || echo "n/a")
 GH_V=$(gh --version 2>/dev/null | awk 'NR==1{print $3}' || echo "n/a")
 
 # ── Remote checks — parallel, 3s timeout each ────────────────────────────────
-T1=$(mktemp); T2=$(mktemp); T3=$(mktemp)
+T1=$(mktemp); T2=$(mktemp); T3=$(mktemp); T4=$(mktemp)
 
 ( timeout 3 npm view @anthropic-ai/claude-code version 2>/dev/null > "$T1" ) &
 PID1=$!
@@ -73,11 +75,15 @@ PID2=$!
   fi ) &
 PID3=$!
 
-wait $PID1 $PID2 $PID3 2>/dev/null
+( timeout 3 npm view @openai/codex version 2>/dev/null > "$T4" ) &
+PID4=$!
+
+wait $PID1 $PID2 $PID3 $PID4 2>/dev/null
 
 CLAUDE_LATEST=$(tr -d ' \n' < "$T1"); rm -f "$T1"
 ANTHR_LATEST=$(tr -d ' \n' < "$T2"); rm -f "$T2"
 PROXY_STATUS=$(cat "$T3");            rm -f "$T3"
+CODEX_LATEST=$(tr -d ' \n' < "$T4"); rm -f "$T4"
 
 # ── Format a version check row ────────────────────────────────────────────────
 ver_row() {
@@ -114,6 +120,7 @@ row "$(printf "${DIM}node${RST} %-8s  ${DIM}python${RST} %-7s  ${DIM}git${RST} %
 div
 row "$(ver_row "claude-code" "$CLAUDE_INST" "$CLAUDE_LATEST")"
 row "$(ver_row "anthropic"   "$ANTHR_INST"  "$ANTHR_LATEST")"
+row "$(ver_row "codex"       "$CODEX_INST"  "$CODEX_LATEST")"
 div
 row "$PROXY_ROW"
 [ -n "$PROXY_ROW2" ] && row "$PROXY_ROW2"
