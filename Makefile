@@ -40,6 +40,7 @@ check-network:
 		(echo "ERROR: Docker network '$(AI_PROXY_NETWORK)' not found. Is the ai_filtering_proxy container running?" && exit 1)
 
 bash: check-network
+	@mkdir -p $(HOST_CODEX_CONFIG_DIR)
 	@echo "running bash"
 	@docker run -u 1000:1000 --rm -it \
 		--network $(AI_PROXY_NETWORK) \
@@ -52,6 +53,7 @@ bash: check-network
 		$(PROJECT) bash
 
 bash-unfiltered:
+	@mkdir -p $(HOST_CODEX_CONFIG_DIR)
 	@echo "running bash (unfiltered)"
 	@docker run -u 1000:1000 --rm -it \
 		--network $(OPEN_NETWORK) \
@@ -70,6 +72,7 @@ bash-unfiltered:
 		$(PROJECT) bash
 
 claude-here: check-network
+	@mkdir -p $(HOST_CODEX_CONFIG_DIR)
 	@echo "running claude"
 	@docker run -u 1000:1000 --rm -it \
 		--network $(AI_PROXY_NETWORK) \
