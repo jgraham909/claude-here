@@ -8,6 +8,8 @@ CURRENT_DIR_NAME    := $(notdir $(shell pwd))
 AI_PROXY_NETWORK    ?= ai_proxy_network_internal
 OPEN_NETWORK        ?= bridge
 PROXY_URL           ?= http://ai_filtering_proxy:3128
+SECCOMP_PROFILE      = $(shell pwd)/seccomp-bwrap.json
+HARNESS ?= claude
 
 PROXY_ENV = \
   -e HTTP_PROXY=$(PROXY_URL) \
@@ -22,6 +24,22 @@ PROXY_ENV = \
 # `make sync-plugins` or by manually placing a plugin directory there.
 _LOCAL_PLUGINS := $(wildcard $(HOME)/.docker-claude/local-plugins/*)
 PLUGIN_ARGS    := $(foreach d,$(_LOCAL_PLUGINS),--plugin-dir $(CLAUDE_CONFIG_DIR)/local-plugins/$(notdir $(d)))
+
+check-seccomp:
+	@echo "Fetching upstream seccomp profile from moby/profiles..."
+	@curl -sf https://raw.githubusercontent.com/moby/profiles/main/seccomp/default.json \
+		-o /tmp/seccomp-upstream-check.json
+	@CURRENT=$$(sha256sum /tmp/seccomp-upstream-check.json | awk '{print $$1}'); \
+	 PINNED=$$(awk '{print $$1}' seccomp-upstream.sha256); \
+	 if [ "$$CURRENT" = "$$PINNED" ]; then \
+	   echo "seccomp profile is up to date ($$CURRENT)"; \
+	 else \
+	   echo "WARNING: upstream seccomp profile has changed!"; \
+	   echo "  Pinned:  $$PINNED"; \
+	   echo "  Current: $$CURRENT"; \
+	   echo "  Review the diff and update seccomp-bwrap.json + seccomp-upstream.sha256"; \
+	   exit 1; \
+	 fi
 
 sync-plugins:
 	@mkdir -p $(HOST_CLAUDE_CONFIG_DIR)/local-plugins
@@ -44,6 +62,7 @@ bash: check-network
 	@echo "running bash"
 	@docker run -u 1000:1000 --rm -it \
 		--network $(AI_PROXY_NETWORK) \
+		--security-opt seccomp=$(SECCOMP_PROFILE) \
 		$(PROXY_ENV) \
 		-e "CLAUDE_CONFIG_DIR=$(CLAUDE_CONFIG_DIR)" \
 		-v $(HOST_CLAUDE_CONFIG_DIR):$(CLAUDE_CONFIG_DIR) \
@@ -57,6 +76,7 @@ bash-unfiltered:
 	@echo "running bash (unfiltered)"
 	@docker run -u 1000:1000 --rm -it \
 		--network $(OPEN_NETWORK) \
+		--security-opt seccomp=$(SECCOMP_PROFILE) \
 		-e HTTP_PROXY="" \
 		-e HTTPS_PROXY="" \
 		-e http_proxy="" \
@@ -73,9 +93,19 @@ bash-unfiltered:
 
 claude-here: check-network
 	@mkdir -p $(HOST_CODEX_CONFIG_DIR)
-	@echo "running claude"
-	@docker run -u 1000:1000 --rm -it \
+	@if [ "$(HARNESS)" != "claude" ] && [ "$(HARNESS)" != "codex" ]; then \
+		echo "ERROR: HARNESS must be 'claude' or 'codex', got '$(HARNESS)'"; \
+		exit 1; \
+	fi
+	@echo "running $(HARNESS)"
+	@if [ "$(HARNESS)" = "claude" ]; then \
+		CMD="claude $(PLUGIN_ARGS)"; \
+	else \
+		CMD="codex"; \
+	fi; \
+	docker run -u 1000:1000 --rm -it \
 		--network $(AI_PROXY_NETWORK) \
+		--security-opt seccomp=$(SECCOMP_PROFILE) \
 		$(PROXY_ENV) \
 		-e UNFILTERED=$(UNFILTERED) \
 		-e "CLAUDE_CONFIG_DIR=$(CLAUDE_CONFIG_DIR)" \
@@ -83,6 +113,9 @@ claude-here: check-network
 		-v $(HOST_CODEX_CONFIG_DIR):$(CODEX_CONFIG_DIR) \
 		-v $(shell pwd):/$(CURRENT_DIR_NAME) \
 		-w /$(CURRENT_DIR_NAME) \
-		$(PROJECT) bash -c '/usr/local/bin/motd.sh && exec claude $(PLUGIN_ARGS)'
+		$(PROJECT) bash -c '/usr/local/bin/motd.sh && exec $$CMD'
+
+codex-here: check-network
+	@$(MAKE) claude-here HARNESS=codex
 
 
