@@ -3,7 +3,7 @@ FROM node:20
 ARG TZ
 ENV TZ="$TZ"
 
-ARG CLAUDE_CODE_VERSION=2.1.83
+ARG CLAUDE_CODE_VERSION=2.1.89
 
 # Install basic development tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -419,7 +419,7 @@ RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION} pnpm typescr
   bash-language-server \
   yaml-language-server \
   dockerfile-language-server-nodejs \
-  @openai/codex@0.117.0
+  @openai/codex@0.118.0
 
 # Proxy configuration — defaults route through the ai_filtering_proxy container.
 # Override at runtime with -e HTTP_PROXY=... if needed.
