@@ -3,7 +3,7 @@ FROM node:20
 ARG TZ
 ENV TZ="$TZ"
 
-ARG CLAUDE_CODE_VERSION=2.1.89
+ARG CLAUDE_CODE_VERSION=2.1.91
 
 # Install basic development tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
