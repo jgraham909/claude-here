@@ -3,8 +3,6 @@ FROM node:20
 ARG TZ
 ENV TZ="$TZ"
 
-ARG CLAUDE_CODE_VERSION=2.1.91
-
 # Install basic development tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
   bat \
@@ -60,35 +58,9 @@ RUN ln -sf /usr/bin/fdfind /usr/local/bin/fd \
   && ln -sf /usr/bin/python3 /usr/local/bin/python
 
 # Install Python tools globally
-RUN pip3 install --no-cache-dir --break-system-packages \
-  anthropic \
-  bandit \
-  bibtexparser \
-  csvkit \
-  habanero \
-  hatch \
-  httpie \
-  httpx \
-  inspect-ai \
-  ipywidgets \
-  jsonschema \
-  lxml \
-  mypy \
-  notebook \
-  openai \
-  pandas \
-  pre-commit \
-  pydantic \
-  pylint \
-  pytest \
-  referencing \
-  requests \
-  ruff \
-  semgrep \
-  tldr \
-  uv \
-  yamllint \
-  yq
+COPY requirements.txt /tmp/requirements.txt
+RUN pip3 install --no-cache-dir --break-system-packages -r /tmp/requirements.txt \
+  && rm /tmp/requirements.txt
 
 # Ensure default node user has access to /usr/local/share
 RUN mkdir -p /usr/local/share/npm-global && \
@@ -412,14 +384,25 @@ RUN echo 'eval "$(zoxide init zsh)"' >> /home/node/.zshrc \
   && echo 'eval "$(zoxide init bash)"' >> /home/node/.bashrc
 
 # Install Claude
-RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION} pnpm typescript tsx prettier eslint dprint yarn markdownlint-cli pyright \
-  @biomejs/biome \
-  typescript-language-server \
-  svelte-language-server \
-  bash-language-server \
-  yaml-language-server \
-  dockerfile-language-server-nodejs \
-  @openai/codex@0.118.0
+ARG CLAUDE_CODE_VERSION=2.1.97
+RUN npm install -g \
+  @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION} \
+  @biomejs/biome@2.4.10 \
+  @openai/codex@0.118.0 \
+  bash-language-server@5.6.0 \
+  dockerfile-language-server-nodejs@0.15.0 \
+  dprint@0.53.2 \
+  eslint@10.1.0 \
+  markdownlint-cli@0.48.0 \
+  pnpm@10.33.0 \
+  prettier@3.8.1 \
+  pyright@1.1.408 \
+  svelte-language-server@0.17.30 \
+  tsx@4.21.0 \
+  typescript-language-server@5.1.3 \
+  typescript@6.0.2 \
+  yaml-language-server@1.21.0 \
+  yarn@1.22.22
 
 # Proxy configuration — defaults route through the ai_filtering_proxy container.
 # Override at runtime with -e HTTP_PROXY=... if needed.
